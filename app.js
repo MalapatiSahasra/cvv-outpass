@@ -77,14 +77,16 @@ async function init() {
   APP.db = { students: [], staff: [], outpasses: [], holidays: [], totalStudents: 0 };
   try {
     const r = await api('GET', '/api/me');
-    if (r.user) {
+    if (r && r.user) {
       APP.currentUser = r.user;
       APP.currentRole = r.role;
       await refreshDB();
       renderDashboard();
       return;
     }
-  } catch (e) { /* fall through to login */ }
+  } catch (e) {
+    console.error('Initialization error:', e);
+  }
   renderAuth();
 }
 
@@ -2731,4 +2733,8 @@ function mulberry32(a) {
 // ═══════════════════════════════════════════════════════════════════
 // 24. INITIALIZE
 // ═══════════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

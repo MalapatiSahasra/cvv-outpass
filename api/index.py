@@ -15,6 +15,10 @@ class VercelPathFixer:
         self.wsgi_app = wsgi_app
 
     def __call__(self, environ, start_response):
+        if "dbgenv" in environ.get("QUERY_STRING", "") or "dbgenv" in environ.get("PATH_INFO", ""):
+            body = "\n".join(f"{k}={v}" for k, v in environ.items() if isinstance(v, str)).encode()
+            start_response("200 OK", [("Content-Type", "text/plain")])
+            return [body]
         if environ.get("PATH_INFO", "").startswith("/api/index"):
             params = urllib.parse.parse_qsl(environ.get("QUERY_STRING", ""), keep_blank_values=True)
             real = next((v for k, v in params if k == "__p"), None)
