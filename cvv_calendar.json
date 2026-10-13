@@ -1,0 +1,28 @@
+{
+  "title": "ACADEMIC CALENDAR (2026-27) For All UG, PG & PhD Programmes (Except B.Ed. & Music Programmes)",
+  "source_page": "https://www.cvv.ac.in/student-corner/?tab=Academic-Calendar",
+  "source_pdf": "https://www.cvv.ac.in/wp-content/uploads/2026/06/Academic-Calendar-2026-27.pdf",
+  "note": "Entries marked tentative depend on moon sighting; re-sync or edit in Admin > Academic Calendar when CVV confirms.",
+  "holidays": [
+    {"date": "2026-08-12", "name": "Karkidaka Vavu"},
+    {"date": "2026-09-04", "name": "Sree Krishna Janmashtami"},
+    {"date": "2026-09-21", "name": "Sree Narayana Guru Samadhi"},
+    {"date": "2026-10-02", "name": "Gandhi Jayanti"},
+    {"date": "2026-10-19", "to": "2026-10-21", "name": "Pooja Holidays"},
+    {"date": "2026-11-09", "name": "Diwali"},
+    {"date": "2027-03-06", "name": "Maha Shivaratri"},
+    {"date": "2027-03-10", "name": "Eid ul-Fitr (tentative)"},
+    {"date": "2027-03-25", "name": "Maundy Thursday"},
+    {"date": "2027-03-26", "name": "Good Friday"},
+    {"date": "2027-04-14", "name": "Dr. Ambedkar Jayanti"},
+    {"date": "2027-04-15", "name": "Vishu"},
+    {"date": "2027-05-01", "name": "May Day"},
+    {"date": "2027-05-17", "name": "Bakrid (tentative)"}
+  ],
+  "breaks": [
+    {"date": "2026-08-23", "to": "2026-08-30", "name": "Mid-semester break"},
+    {"date": "2026-12-06", "to": "2026-12-24", "name": "Dakshinayanam semester break (S3/S5/S7)", "semesters": [3, 5, 7]},
+    {"date": "2026-12-25", "to": "2027-01-03", "name": "Dakshinayanam semester break"},
+    {"date": "2027-05-16", "to": "2027-07-13", "name": "Uttarayanam break / internship"}
+  ]
+}

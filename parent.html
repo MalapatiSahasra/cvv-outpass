@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CVV Outpass — Parent</title>
+<style>
+  :root {
+    --navy: #111d35; --navy-2: #1e3a5f; --gold: #d4a843;
+    --green: #15803d; --green-bg: #dcfce7; --red: #b91c1c; --red-bg: #fee2e2;
+    --text: #0f172a; --muted: #475569; --bg: #f1f5f9; --card: #ffffff; --line: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 20px/1.45 system-ui, -apple-system, "Segoe UI", "Noto Sans", "Noto Sans Malayalam",
+          "Noto Sans Devanagari", "Noto Sans Kannada", "Noto Sans Telugu", "Noto Sans Tamil", sans-serif;
+  }
+  header { background: var(--navy); color: #fff; padding: 14px 16px; border-bottom: 4px solid var(--gold); }
+  header .t { font-weight: 700; font-size: 1.05rem; }
+  header .s { font-size: 0.8rem; color: #e8cf7d; letter-spacing: .08em; text-transform: uppercase; }
+  main { max-width: 520px; margin: 0 auto; padding: 16px; }
+  .langs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .langs button {
+    flex: 1 1 30%; min-height: 48px; font: inherit; font-size: 1rem;
+    border: 2px solid var(--line); background: var(--card); border-radius: 12px; color: var(--text);
+  }
+  .langs button.on { border-color: var(--navy-2); background: #e8f1f8; font-weight: 700; }
+  .card { background: var(--card); border-radius: 18px; padding: 22px 20px; border: 1px solid var(--line); }
+  .who { font-size: 1.45rem; font-weight: 800; line-height: 1.25; }
+  .facts { margin: 18px 0 6px; display: grid; gap: 12px; }
+  .fact { display: flex; gap: 12px; align-items: flex-start; }
+  .fact .i { font-size: 1.6rem; line-height: 1; width: 34px; text-align: center; }
+  .fact .k { font-size: 0.85rem; color: var(--muted); }
+  .fact .v { font-weight: 700; }
+  .listen {
+    width: 100%; min-height: 56px; margin-top: 14px; font: inherit; font-weight: 600;
+    background: #fff; border: 2px solid var(--navy-2); color: var(--navy-2); border-radius: 14px;
+  }
+  .big { display: grid; gap: 14px; margin-top: 20px; }
+  .big button, .btn {
+    width: 100%; min-height: 72px; border: 0; border-radius: 16px; font: inherit; font-size: 1.35rem;
+    font-weight: 800; color: #fff; display: flex; align-items: center; justify-content: center; gap: 12px;
+    text-decoration: none;
+  }
+  .yes { background: var(--green); }
+  .no { background: var(--red); }
+  .grey { background: var(--navy-2); }
+  .q { font-size: 1.15rem; font-weight: 700; margin-top: 22px; text-align: center; }
+  .code {
+    width: 100%; margin-top: 14px; font-size: 2.4rem; letter-spacing: .5em; text-align: center;
+    padding: 14px 0 14px .5em; border: 3px solid var(--navy-2); border-radius: 16px; font-weight: 800;
+  }
+  .hint { color: var(--muted); font-size: 0.95rem; margin-top: 10px; text-align: center; }
+  .demo { background: #fef9c3; border: 1px dashed #ca8a04; border-radius: 12px; padding: 10px; font-size: .9rem; margin-top: 12px; text-align: center; }
+  .msg { padding: 12px 14px; border-radius: 12px; margin-top: 14px; font-weight: 600; }
+  .msg.err { background: var(--red-bg); color: var(--red); }
+  .done { text-align: center; padding: 10px 0; }
+  .done .tick { font-size: 4.5rem; line-height: 1; }
+  .done h2 { font-size: 1.5rem; margin: 12px 0 8px; }
+  .done p { color: var(--muted); margin: 0; }
+  .help { margin-top: 18px; text-align: center; color: var(--muted); font-size: .95rem; }
+  .help a.btn { margin-top: 10px; min-height: 60px; font-size: 1.15rem; background: #fff; color: var(--navy-2); border: 2px solid var(--navy-2); }
+  .link { background: none; border: 0; color: var(--navy-2); font: inherit; text-decoration: underline; margin-top: 12px; width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div class="t">Chinmaya Vishwa Vidyapeeth</div>
+  <div class="s">Hostel Outpass</div>
+</header>
+<main>
+  <div class="langs" id="langs"></div>
+  <div id="view"><div class="card">…</div></div>
+  <div class="help" id="help"></div>
+</main>
+
+<script>
+// Every word a parent sees is here, in 6 languages. Short sentences, no jargon.
+const T = {
+  en: { name: 'English',
+    wants: n => `${n} wants to go out of the hostel`, day: 'Day', reason: 'Reason', back: 'Must come back by',
+    backTime: '6:00 PM, same day', listen: '🔊 Listen', yes: '✅ Yes, allow', no: '❌ No',
+    ask: 'Do you allow this?', codeTitle: 'We sent a 4-digit number to your phone by SMS. Type it here.',
+    codeBtn: 'Confirm ✅', wrong: 'That number is not correct. Please check the SMS and try again.',
+    expired: 'The number has expired. We sent a new one.', resend: 'I did not get the SMS',
+    okYes: 'Thank you. You allowed it.', okNo: 'Thank you. You did not allow it.',
+    after: n => `We will send you a message when ${n} leaves and returns.`,
+    alreadyY: 'You have already allowed this.', alreadyN: 'This request is closed.',
+    invalid: 'This link is not working. Please call the warden.',
+    help: 'Need help? Call the warden — they can take your answer on the phone.', call: '📞 Call warden',
+    emergency: 'Emergency', sure: 'Are you sure you do NOT allow?', sureNo: '❌ Yes, do not allow', cancel: 'Go back',
+    speak: (n, d, r) => `${n} wants to go out of the hostel on ${d}. Reason: ${r}. Press the green button to allow, or the red button to refuse.` },
+  ml: { name: 'മലയാളം',
+    wants: n => `${n} ഹോസ്റ്റലിൽ നിന്ന് പുറത്തുപോകാൻ അനുവാദം ചോദിക്കുന്നു`, day: 'ദിവസം', reason: 'കാരണം', back: 'തിരിച്ചെത്തേണ്ട സമയം',
+    backTime: 'അതേ ദിവസം വൈകിട്ട് 6 മണി', listen: '🔊 കേൾക്കുക', yes: '✅ അനുവദിക്കുന്നു', no: '❌ ഇല്ല',
+    ask: 'നിങ്ങൾ അനുവദിക്കുന്നുണ്ടോ?', codeTitle: 'നിങ്ങളുടെ ഫോണിലേക്ക് SMS ആയി 4 അക്ക നമ്പർ അയച്ചിട്ടുണ്ട്. അത് ഇവിടെ ടൈപ്പ് ചെയ്യുക.',
+    codeBtn: 'ഉറപ്പിക്കുക ✅', wrong: 'നമ്പർ ശരിയല്ല. SMS നോക്കി വീണ്ടും ശ്രമിക്കുക.',
+    expired: 'നമ്പറിന്റെ സമയം കഴിഞ്ഞു. പുതിയത് അയച്ചിട്ടുണ്ട്.', resend: 'SMS കിട്ടിയില്ല',
+    okYes: 'നന്ദി. നിങ്ങൾ അനുവദിച്ചു.', okNo: 'നന്ദി. നിങ്ങൾ അനുവദിച്ചില്ല.',
+    after: n => `${n} പുറത്തിറങ്ങുമ്പോഴും തിരിച്ചെത്തുമ്പോഴും ഞങ്ങൾ സന്ദേശം അയയ്ക്കും.`,
+    alreadyY: 'നിങ്ങൾ ഇതിനകം അനുവദിച്ചിട്ടുണ്ട്.', alreadyN: 'ഈ അപേക്ഷ അവസാനിച്ചു.',
+    invalid: 'ഈ ലിങ്ക് പ്രവർത്തിക്കുന്നില്ല. വാർഡനെ വിളിക്കുക.',
+    help: 'സഹായം വേണോ? വാർഡനെ വിളിക്കുക — ഫോണിലൂടെ മറുപടി നൽകാം.', call: '📞 വാർഡനെ വിളിക്കുക',
+    emergency: 'അടിയന്തരം', sure: 'അനുവദിക്കുന്നില്ല എന്ന് ഉറപ്പാണോ?', sureNo: '❌ അതെ, അനുവദിക്കുന്നില്ല', cancel: 'തിരികെ',
+    speak: (n, d, r) => `${n} ${d} ന് ഹോസ്റ്റലിൽ നിന്ന് പുറത്തുപോകാൻ അനുവാദം ചോദിക്കുന്നു. കാരണം: ${r}. അനുവദിക്കാൻ പച്ച ബട്ടൺ അമർത്തുക. ഇല്ലെങ്കിൽ ചുവന്ന ബട്ടൺ.` },
+  hi: { name: 'हिन्दी',
+    wants: n => `${n} हॉस्टल से बाहर जाना चाहता/चाहती है`, day: 'दिन', reason: 'कारण', back: 'वापस आना है',
+    backTime: 'उसी दिन शाम 6 बजे तक', listen: '🔊 सुनें', yes: '✅ हाँ, अनुमति है', no: '❌ नहीं',
+    ask: 'क्या आप अनुमति देते हैं?', codeTitle: 'आपके फ़ोन पर SMS से 4 अंकों का नंबर भेजा गया है। उसे यहाँ लिखें।',
+    codeBtn: 'पक्का करें ✅', wrong: 'नंबर सही नहीं है। SMS देखकर फिर से कोशिश करें।',
+    expired: 'नंबर का समय खत्म हो गया। नया नंबर भेजा गया है।', resend: 'SMS नहीं मिला',
+    okYes: 'धन्यवाद। आपने अनुमति दी।', okNo: 'धन्यवाद। आपने अनुमति नहीं दी।',
+    after: n => `${n} के बाहर जाने और लौटने पर हम आपको संदेश भेजेंगे।`,
+    alreadyY: 'आप पहले ही अनुमति दे चुके हैं।', alreadyN: 'यह अनुरोध बंद हो गया है।',
+    invalid: 'यह लिंक काम नहीं कर रहा। कृपया वार्डन को फ़ोन करें।',
+    help: 'मदद चाहिए? वार्डन को फ़ोन करें — वे फ़ोन पर आपका जवाब ले लेंगे।', call: '📞 वार्डन को फ़ोन करें',
+    emergency: 'आपातकाल', sure: 'क्या आप पक्का अनुमति नहीं देना चाहते?', sureNo: '❌ हाँ, अनुमति नहीं', cancel: 'वापस',
+    speak: (n, d, r) => `${n} ${d} को हॉस्टल से बाहर जाना चाहता है। कारण: ${r}। अनुमति के लिए हरा बटन दबाएँ, मना करने के लिए लाल बटन।` },
+  kn: { name: 'ಕನ್ನಡ',
+    wants: n => `${n} ಹಾಸ್ಟೆಲ್‌ನಿಂದ ಹೊರಗೆ ಹೋಗಲು ಅನುಮತಿ ಕೇಳುತ್ತಿದ್ದಾರೆ`, day: 'ದಿನ', reason: 'ಕಾರಣ', back: 'ಹಿಂತಿರುಗಬೇಕಾದ ಸಮಯ',
+    backTime: 'ಅದೇ ದಿನ ಸಂಜೆ 6 ಗಂಟೆ', listen: '🔊 ಕೇಳಿ', yes: '✅ ಹೌದು, ಅನುಮತಿ', no: '❌ ಇಲ್ಲ',
+    ask: 'ನೀವು ಅನುಮತಿ ಕೊಡುತ್ತೀರಾ?', codeTitle: 'ನಿಮ್ಮ ಫೋನ್‌ಗೆ SMS ಮೂಲಕ 4 ಅಂಕಿಯ ಸಂಖ್ಯೆ ಕಳುಹಿಸಲಾಗಿದೆ. ಅದನ್ನು ಇಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ.',
+    codeBtn: 'ಖಚಿತಪಡಿಸಿ ✅', wrong: 'ಸಂಖ್ಯೆ ಸರಿಯಿಲ್ಲ. SMS ನೋಡಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+    expired: 'ಸಂಖ್ಯೆಯ ಸಮಯ ಮುಗಿದಿದೆ. ಹೊಸದನ್ನು ಕಳುಹಿಸಲಾಗಿದೆ.', resend: 'SMS ಬರಲಿಲ್ಲ',
+    okYes: 'ಧನ್ಯವಾದಗಳು. ನೀವು ಅನುಮತಿ ನೀಡಿದ್ದೀರಿ.', okNo: 'ಧನ್ಯವಾದಗಳು. ನೀವು ಅನುಮತಿ ನೀಡಿಲ್ಲ.',
+    after: n => `${n} ಹೊರಗೆ ಹೋದಾಗ ಮತ್ತು ಹಿಂತಿರುಗಿದಾಗ ನಾವು ಸಂದೇಶ ಕಳುಹಿಸುತ್ತೇವೆ.`,
+    alreadyY: 'ನೀವು ಈಗಾಗಲೇ ಅನುಮತಿ ನೀಡಿದ್ದೀರಿ.', alreadyN: 'ಈ ವಿನಂತಿ ಮುಚ್ಚಲಾಗಿದೆ.',
+    invalid: 'ಈ ಲಿಂಕ್ ಕೆಲಸ ಮಾಡುತ್ತಿಲ್ಲ. ದಯವಿಟ್ಟು ವಾರ್ಡನ್‌ಗೆ ಕರೆ ಮಾಡಿ.',
+    help: 'ಸಹಾಯ ಬೇಕೇ? ವಾರ್ಡನ್‌ಗೆ ಕರೆ ಮಾಡಿ — ಫೋನ್‌ನಲ್ಲೇ ಉತ್ತರ ಪಡೆಯುತ್ತಾರೆ.', call: '📞 ವಾರ್ಡನ್‌ಗೆ ಕರೆ ಮಾಡಿ',
+    emergency: 'ತುರ್ತು', sure: 'ಅನುಮತಿ ಕೊಡುವುದಿಲ್ಲ ಎಂದು ಖಚಿತವೇ?', sureNo: '❌ ಹೌದು, ಅನುಮತಿ ಇಲ್ಲ', cancel: 'ಹಿಂದೆ',
+    speak: (n, d, r) => `${n} ${d} ರಂದು ಹಾಸ್ಟೆಲ್‌ನಿಂದ ಹೊರಗೆ ಹೋಗಲು ಅನುಮತಿ ಕೇಳುತ್ತಿದ್ದಾರೆ. ಕಾರಣ: ${r}. ಅನುಮತಿಸಲು ಹಸಿರು ಗುಂಡಿ ಒತ್ತಿ, ಇಲ್ಲವಾದರೆ ಕೆಂಪು ಗುಂಡಿ.` },
+  te: { name: 'తెలుగు',
+    wants: n => `${n} హాస్టల్ నుండి బయటికి వెళ్లడానికి అనుమతి అడుగుతున్నారు`, day: 'రోజు', reason: 'కారణం', back: 'తిరిగి రావాల్సిన సమయం',
+    backTime: 'అదే రోజు సాయంత్రం 6 గంటలు', listen: '🔊 వినండి', yes: '✅ అవును, అనుమతి', no: '❌ వద్దు',
+    ask: 'మీరు అనుమతిస్తారా?', codeTitle: 'మీ ఫోన్‌కు SMS ద్వారా 4 అంకెల నంబర్ పంపాము. దాన్ని ఇక్కడ టైప్ చేయండి.',
+    codeBtn: 'నిర్ధారించండి ✅', wrong: 'నంబర్ సరైనది కాదు. SMS చూసి మళ్లీ ప్రయత్నించండి.',
+    expired: 'నంబర్ గడువు ముగిసింది. కొత్తది పంపాము.', resend: 'SMS రాలేదు',
+    okYes: 'ధన్యవాదాలు. మీరు అనుమతించారు.', okNo: 'ధన్యవాదాలు. మీరు అనుమతించలేదు.',
+    after: n => `${n} బయటికి వెళ్లినప్పుడు, తిరిగి వచ్చినప్పుడు మీకు సందేశం పంపుతాము.`,
+    alreadyY: 'మీరు ఇప్పటికే అనుమతించారు.', alreadyN: 'ఈ అభ్యర్థన ముగిసింది.',
+    invalid: 'ఈ లింక్ పనిచేయడం లేదు. దయచేసి వార్డెన్‌కు ఫోన్ చేయండి.',
+    help: 'సహాయం కావాలా? వార్డెన్‌కు ఫోన్ చేయండి — ఫోన్‌లోనే మీ సమాధానం తీసుకుంటారు.', call: '📞 వార్డెన్‌కు ఫోన్',
+    emergency: 'అత్యవసరం', sure: 'అనుమతించడం లేదని ఖచ్చితమేనా?', sureNo: '❌ అవును, అనుమతి లేదు', cancel: 'వెనక్కి',
+    speak: (n, d, r) => `${n} ${d} న హాస్టల్ నుండి బయటికి వెళ్లడానికి అనుమతి అడుగుతున్నారు. కారణం: ${r}. అనుమతించడానికి ఆకుపచ్చ బటన్ నొక్కండి, వద్దంటే ఎరుపు బటన్.` },
+  ta: { name: 'தமிழ்',
+    wants: n => `${n} விடுதியிலிருந்து வெளியே செல்ல அனுமதி கேட்கிறார்`, day: 'நாள்', reason: 'காரணம்', back: 'திரும்ப வர வேண்டிய நேரம்',
+    backTime: 'அதே நாள் மாலை 6 மணி', listen: '🔊 கேளுங்கள்', yes: '✅ ஆம், அனுமதி', no: '❌ இல்லை',
+    ask: 'நீங்கள் அனுமதிக்கிறீர்களா?', codeTitle: 'உங்கள் தொலைபேசிக்கு SMS மூலம் 4 இலக்க எண் அனுப்பப்பட்டுள்ளது. அதை இங்கே தட்டச்சு செய்யவும்.',
+    codeBtn: 'உறுதிசெய் ✅', wrong: 'எண் சரியில்லை. SMS பார்த்து மீண்டும் முயற்சிக்கவும்.',
+    expired: 'எண்ணின் நேரம் முடிந்தது. புதியது அனுப்பப்பட்டது.', resend: 'SMS வரவில்லை',
+    okYes: 'நன்றி. நீங்கள் அனுமதித்தீர்கள்.', okNo: 'நன்றி. நீங்கள் அனுமதிக்கவில்லை.',
+    after: n => `${n} வெளியே செல்லும்போதும் திரும்பும்போதும் உங்களுக்கு செய்தி அனுப்புவோம்.`,
+    alreadyY: 'நீங்கள் ஏற்கனவே அனுமதித்துவிட்டீர்கள்.', alreadyN: 'இந்த கோரிக்கை முடிந்தது.',
+    invalid: 'இந்த இணைப்பு வேலை செய்யவில்லை. வார்டனை அழைக்கவும்.',
+    help: 'உதவி வேண்டுமா? வார்டனை அழைக்கவும் — தொலைபேசியிலேயே பதிலைப் பெறுவார்.', call: '📞 வார்டனை அழை',
+    emergency: 'அவசரம்', sure: 'அனுமதிக்கவில்லை என்பது உறுதியா?', sureNo: '❌ ஆம், அனுமதி இல்லை', cancel: 'பின்செல்',
+    speak: (n, d, r) => `${n} ${d} அன்று விடுதியிலிருந்து வெளியே செல்ல அனுமதி கேட்கிறார். காரணம்: ${r}. அனுமதிக்க பச்சை பொத்தானை அழுத்தவும், இல்லையெனில் சிவப்பு பொத்தான்.` },
+};
+const SPEECH_LANG = { en: 'en-IN', ml: 'ml-IN', hi: 'hi-IN', kn: 'kn-IN', te: 'te-IN', ta: 'ta-IN' };
+const LOCALE = { en: 'en-IN', ml: 'ml-IN', hi: 'hi-IN', kn: 'kn-IN', te: 'te-IN', ta: 'ta-IN' };
+
+const token = location.pathname.split('/').pop();
+let R = null, lang = 'en', step = 'ask', demoCode = null, error = '';
+
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function t() { return T[lang] || T.en; }
+function niceDate(iso) {
+  return new Date(iso + 'T12:00:00').toLocaleDateString(LOCALE[lang], { weekday: 'long', day: 'numeric', month: 'long' });
+}
+async function call(method, url, body) {
+  const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  return r.json();
+}
+
+function render() {
+  const L = t();
+  document.documentElement.lang = lang;
+  document.getElementById('langs').innerHTML = Object.entries(T).map(([k, v]) =>
+    `<button class="${k === lang ? 'on' : ''}" onclick="setLang('${k}')">${v.name}</button>`).join('');
+
+  const view = document.getElementById('view');
+  const help = document.getElementById('help');
+  if (!R) { view.innerHTML = `<div class="card"><p>${L.invalid}</p></div>`; help.innerHTML = ''; return; }
+
+  help.innerHTML = R.wardenPhone ? `${L.help}<a class="btn" href="tel:${R.wardenPhone.replace(/\s/g, '')}">${L.call}</a>` : '';
+
+  const facts = `
+    <div class="who">${esc(L.wants(R.student))}</div>
+    <div class="facts">
+      <div class="fact"><div class="i">📅</div><div><div class="k">${L.day}</div><div class="v">${esc(niceDate(R.date))}${R.type === 'emergency' ? ' · ' + L.emergency : ''}</div></div></div>
+      <div class="fact"><div class="i">📝</div><div><div class="k">${L.reason}</div><div class="v">${esc(R.reason)}</div></div></div>
+      <div class="fact"><div class="i">🕕</div><div><div class="k">${L.back}</div><div class="v">${L.backTime}</div></div></div>
+    </div>`;
+
+  if (R.parentStatus !== 'pending' || R.status !== 'pending') {
+    const allowed = R.parentStatus === 'approved';
+    view.innerHTML = `<div class="card"><div class="done"><div class="tick">${allowed ? '✅' : '🔒'}</div>
+      <h2>${step === 'done' ? (allowed ? L.okYes : L.okNo) : (allowed ? L.alreadyY : L.alreadyN)}</h2>
+      ${allowed ? `<p>${esc(L.after(R.student))}</p>` : ''}</div></div>`;
+    return;
+  }
+
+  if (step === 'ask') {
+    view.innerHTML = `<div class="card">${facts}
+      <button class="listen" onclick="speak()">${L.listen}</button>
+      <div class="q">${L.ask}</div>
+      <div class="big">
+        <button class="yes" onclick="startYes()">${L.yes}</button>
+        <button class="no" onclick="step='sureNo';render()">${L.no}</button>
+      </div></div>`;
+  } else if (step === 'sureNo') {
+    view.innerHTML = `<div class="card">${facts}
+      <div class="q">${L.sure}</div>
+      <div class="big">
+        <button class="no" onclick="decide('reject')">${L.sureNo}</button>
+        <button class="grey" onclick="step='ask';render()">${L.cancel}</button>
+      </div></div>`;
+  } else if (step === 'code') {
+    view.innerHTML = `<div class="card">
+      <div class="q" style="margin-top:0">${L.codeTitle}</div>
+      <input class="code" id="code" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" placeholder="____"
+        oninput="this.value=this.value.replace(/\\D/g,'');if(this.value.length===4)decide('approve')">
+      ${demoCode ? `<div class="demo">Demo — SMS code: <b>${demoCode}</b></div>` : ''}
+      ${error ? `<div class="msg err">${error}</div>` : ''}
+      <div class="big"><button class="yes" onclick="decide('approve')">${L.codeBtn}</button></div>
+      <button class="link" onclick="startYes()">${L.resend}</button>
+      <button class="link" onclick="step='ask';error='';render()">${L.cancel}</button></div>`;
+    const inp = document.getElementById('code'); if (inp) inp.focus();
+  }
+}
+
+function setLang(k) {
+  lang = k;
+  try { localStorage.setItem('cvv_parent_lang', k); } catch (e) {}
+  call('POST', `/api/p/${token}/lang`, { lang: k }); // next WhatsApp message comes in this language
+  render();
+}
+
+function speak() {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t().speak(R.student, niceDate(R.date), R.reason));
+  u.lang = SPEECH_LANG[lang]; u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+
+async function startYes() {
+  error = '';
+  const r = await call('POST', `/api/p/${token}/otp`);
+  if (!r.ok) { await load(); return; }
+  demoCode = r.otp; step = 'code'; render();
+}
+
+async function decide(action) {
+  const otp = document.getElementById('code')?.value || '';
+  if (action === 'approve' && otp.length < 4) return;
+  const r = await call('POST', `/api/p/${token}/decision`, { action, otp });
+  if (r.ok) { R = r.request; step = 'done'; render(); return; }
+  if (r.error === 'code_wrong') { error = t().wrong; render(); return; }
+  if (r.error === 'code_expired') { await startYes(); error = t().expired; render(); return; }
+  await load();
+}
+
+async function load() {
+  const r = await call('GET', `/api/p/${token}`);
+  R = r.ok ? r.request : null;
+  let saved = null;
+  try { saved = localStorage.getItem('cvv_parent_lang'); } catch (e) {}
+  if (step === 'ask') lang = (saved && T[saved]) ? saved : (R && T[R.lang] ? R.lang : 'en');
+  render();
+}
+load();
+</script>
+</body>
+</html>

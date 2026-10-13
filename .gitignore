@@ -1,0 +1,6 @@
+outpass.db
+__pycache__/
+*.pyc
+.vercel/
+.env
+.DS_Store
