@@ -1337,8 +1337,11 @@ def index():
 
 @app.get("/<path:name>")
 def static_files(name):
-    if name in ("app.js", "style.css", "parent.html"):
-        return send_from_directory(BASE_DIR, name)
+    clean_name = name.removeprefix("api/index").strip("/")
+    if not clean_name or clean_name == "index.html":
+        return send_from_directory(BASE_DIR, "index.html")
+    if clean_name in ("app.js", "style.css", "parent.html"):
+        return send_from_directory(BASE_DIR, clean_name)
     return err("Not found", 404)
 
 
