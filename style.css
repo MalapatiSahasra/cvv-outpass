@@ -2436,3 +2436,5 @@ table tbody tr:last-child td {
 .inbox-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .inbox-actions .btn { min-height: 36px; }
 .shared-flag { font-size: 0.7rem; color: var(--warning); font-weight: 600; margin-top: 2px; }
+.portal-demo-note { font-size: 0.75rem; color: var(--gray-500, #64748b); margin-top: 10px; }
+.portal-demo-note a { color: var(--navy-500); }

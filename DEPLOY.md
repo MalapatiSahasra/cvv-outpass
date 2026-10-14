@@ -22,19 +22,18 @@ This takes about 10 minutes. Everything is free.
 
    | Name | Value |
    |---|---|
-   | `OUTPASS_SECRET` | `829c11cadc849762899e15669010cccc48a60db18594e05466d94cd3bd70290e` |
+   | `OUTPASS_SECRET` (optional for the prototype) | `829c11cadc849762899e15669010cccc48a60db18594e05466d94cd3bd70290e` |
 
 4. Click **Deploy**. You get a link like `https://cvv-outpass.vercel.app`.
 
-## 3. Add the database (required, or data disappears)
+## 3. Database: not needed for the prototype
 
-Vercel's servers don't keep files, so it needs a real database.
+Without a database, the online version runs in **no-database mode**:
+- **Saved in the browser:** each browser keeps its own copy of the demo data, and logins, requests and approvals all work.
+- **One device per demo:** a request made on one phone won't show up on another. Present from one browser and switch roles with the demo accounts. The parent page opened from the WhatsApp link works in another tab.
+- **Starting over:** use **Demo accounts → Reset demo data** on the login page.
 
-1. In the Vercel project, open the **Storage** tab → **Create Database** → **Neon** (Postgres) → free plan → **Create**.
-2. **Connect** it to the `cvv-outpass` project. This adds `DATABASE_URL` automatically.
-3. Go to **Deployments** → the ⋯ menu on the latest one → **Redeploy**.
-
-Open the link. The first load creates the tables, the demo accounts and the CVV calendar.
+If you later connect a Neon database (Storage → Create Database → Neon → Connect → Redeploy), it switches to shared data automatically.
 
 ## Updating later
 

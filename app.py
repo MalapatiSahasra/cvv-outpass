@@ -32,7 +32,10 @@ import os
 import re
 import urllib.request
 import secrets
+import base64
 import sqlite3
+import threading
+import zlib
 from datetime import date, datetime, timedelta
 from functools import wraps
 from zoneinfo import ZoneInfo
@@ -47,6 +50,10 @@ ON_VERCEL = bool(os.environ.get("VERCEL"))
 DB_PATH = os.environ.get("OUTPASS_DB") or (
     "/tmp/outpass.db" if ON_VERCEL else os.path.join(BASE_DIR, "outpass.db"))
 USE_PG = bool(DATABASE_URL)
+# No-database mode for the online prototype: each browser keeps its own copy of the demo data and
+# sends it with every request, so it works on Vercel's throwaway servers without any database.
+TUNNEL = os.environ.get("OUTPASS_TUNNEL", "1" if (ON_VERCEL and not USE_PG) else "0") == "1"
+SAMPLE_DATA = os.environ.get("OUTPASS_SAMPLE_DATA", "1") == "1"
 TZ = ZoneInfo("Asia/Kolkata")
 DEMO_MODE = os.environ.get("OUTPASS_DEMO", "1") == "1"
 ALLOWED_EMAIL_DOMAINS = ("@cvv.ac.in", "@cvv.edu.in")
@@ -160,6 +167,9 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 """
 
+DEMO_CONTACT_EMAIL = "malapatisahasra162@gmail.com"
+DEMO_CONTACT_PHONE = "+91 76595 27002"
+
 SEED_STUDENTS = [
     ("STU001", "rahul@cvv.edu.in", "Rahul Sharma", "CVV2024001", 5, "CSE", "Mr. Anil Sharma", "+91 98765 43210"),
     ("STU002", "priya@cvv.edu.in", "Priya Reddy", "CVV2024002", 3, "ECE", "Mrs. Lakshmi Reddy", "+91 91234 56789"),
@@ -167,6 +177,18 @@ SEED_STUDENTS = [
     ("STU004", "sneha@cvv.edu.in", "Sneha Patel", "CVV2024004", 5, "CSE", "Mrs. Kavita Patel", "+91 99887 65432"),
     ("STU005", "amit@cvv.edu.in", "Amit Kumar", "CVV2024005", 3, "ECE", "Mr. Rajesh Kumar", "+91 90909 09090"),
 ]
+# Extra sample students for the online demo (switched off in the tests with OUTPASS_SAMPLE_DATA=0).
+SAMPLE_STUDENTS = [
+    ("STU006", DEMO_CONTACT_EMAIL, "Malapati Sahasra", "CVV2024106", 5, "CSE", "Mr. Malapati Srinivas", DEMO_CONTACT_PHONE),
+    ("STU007", "aditya.menon@cvv.edu.in", "Aditya Menon", "CVV2024107", 5, "CSE", "Mr. Suresh Menon", "+91 94470 11223"),
+    ("STU008", "kavya.nair@cvv.edu.in", "Kavya Nair", "CVV2024108", 5, "CSE", "Mrs. Deepa Nair", "+91 98950 33445"),
+    ("STU009", "rohit.verma@cvv.edu.in", "Rohit Verma", "CVV2024109", 3, "CSE", "Mr. Ajay Verma", "+91 98110 55667"),
+    ("STU010", "ananya.iyer@cvv.edu.in", "Ananya Iyer", "CVV2024110", 7, "CSE", "Mrs. Lakshmi Iyer", "+91 94440 77889"),
+    ("STU011", "farhan.ali@cvv.edu.in", "Farhan Ali", "CVV2024111", 3, "ECE", "Mr. Imran Ali", "+91 97450 99001"),
+    ("STU012", "divya.krishnan@cvv.edu.in", "Divya Krishnan", "CVV2024112", 5, "ECE", "Mr. Gopal Krishnan", "+91 94960 22334"),
+    ("STU013", "sai.teja@cvv.edu.in", "Sai Teja Reddy", "CVV2024113", 5, "CSE", "Mr. Venkat Reddy", "+91 99490 44556"),
+]
+
 SEED_STAFF = [
     ("TCH001", "teacher@cvv.edu.in", "Dr. Meena Iyer", "teacher", "CSE", 1, "CSE-5"),
     ("TCH002", "ece.teacher@cvv.edu.in", "Prof. Suresh Rao", "teacher", "ECE", 1, "ECE-3"),
@@ -227,8 +249,26 @@ class PgDB:
         self.conn.close()
 
 
+_tunnel = threading.local()
+
+
+class _SharedConn:
+    """The tunnel's in-memory database, used by the inner request; the tunnel closes it."""
+    def __init__(self, conn):
+        self._conn = conn
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+    def close(self):
+        pass
+
+
 def connect():
+    if getattr(_tunnel, "conn", None) is not None:
+        return _SharedConn(_tunnel.conn)
     if USE_PG:
+
         return PgDB(DATABASE_URL)
     db = sqlite3.connect(DB_PATH)
     db.row_factory = sqlite3.Row
@@ -264,9 +304,57 @@ def seed(db, wipe=False):
         [(s[0], s[1], s[2], pw, s[3], s[4], s[5], s[6]) for s in SEED_STAFF])
     load_calendar_entries(db, json.load(open(CALENDAR_FILE, encoding="utf-8")), "cvv.ac.in")
     db.executemany("INSERT INTO settings (key,value) VALUES (?,?)",
-                   [("total_students", "500"), ("next_pass_id", "1"), ("warden_phone", "+91 98470 00000"),
+                   [("total_students", "500"), ("next_pass_id", "1"),
+                    ("warden_phone", DEMO_CONTACT_PHONE if SAMPLE_DATA else "+91 98470 00000"),
                     ("calendar_synced_at", iso(now()))])
+    if SAMPLE_DATA:
+        seed_samples(db, pw)
     db.commit()
+
+
+def seed_samples(db, pw):
+    """A lived-in demo: more students, and passes in every state dated around today."""
+    db.executemany(
+        "INSERT INTO students (id,email,name,reg_no,password_hash,semester,branch,parent_name,parent_phone,activated) "
+        "VALUES (?,?,?,?,?,?,?,?,?,1)",
+        [(s[0], s[1], s[2], s[3], pw, s[4], s[5], s[6], s[7]) for s in SAMPLE_STUDENTS])
+    t = now()
+    today, tom = t.date(), t.date() + timedelta(days=1)
+    sat = today + timedelta(days=((5 - today.weekday()) % 7) or 7)
+    ago = lambda h: iso(t - timedelta(hours=h))
+    at = lambda d, h, m=0: iso(datetime(d.year, d.month, d.day, h, m, tzinfo=TZ))
+    weekday = today.weekday() < 5
+    A, P, N, R = "approved", "pending", "na", "rejected"
+    # student, date, reason, type, status, parent, teacher, hod, created (hours ago), exit, return, late
+    rows = [
+        ("STU006", sat, "Visiting family in Ernakulam", "holiday", P, P, N, N, 1, None, None, 0),
+        ("STU007", tom, "Dental appointment at the city hospital", "working", P, A, P, P, 3, None, None, 0),
+        ("STU008", tom, "Sister's engagement ceremony", "working", P, A, A, P, 5, None, None, 0),
+        ("STU009", today, "Father admitted to hospital", "emergency", P, A, P, P, 3, None, None, 0),
+        ("STU010", sat, "Weekend at home", "holiday", A, A, N, N, 20, None, None, 0),
+        ("STU013", sat, "Cousin's wedding in Thrissur", "holiday", A, A, N, N, 26, None, None, 0),
+        ("STU011", today, "Passport verification at the PSK", "working" if weekday else "holiday", "active",
+         A, A if weekday else N, A if weekday else N, 30, at(today, 9, 10), None, 0),
+        ("STU012", today, "Bank KYC and shopping", "working" if weekday else "holiday", "completed",
+         A, A if weekday else N, A if weekday else N, 28, at(today, 8, 30), at(today, 12, 45), 0),
+        ("STU001", today - timedelta(days=2), "Dinner with family", "holiday", "completed", A, N, N, 70,
+         at(today - timedelta(days=2), 10, 0), at(today - timedelta(days=2), 18, 40), 1),
+        ("STU004", today - timedelta(days=3), "Personal work", "working", R, A, R, N, 90, None, None, 0),
+    ]
+    for i, (sid, d, reason, ptype, status, ps, ts, hs, hago, ex, rt, late) in enumerate(rows, 1):
+        db.execute(
+            "INSERT INTO outpasses (pass_id,student_id,out_date,reason,type,status,reject_reason,created_at,"
+            "parent_status,parent_time,parent_method,teacher_status,teacher_time,hod_status,hod_time,"
+            "exit_at,return_at,late_return,late_alerted,qr_token,parent_token) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (f"CVV-{i:05d}", sid, d.isoformat(), reason, ptype, status,
+             "Rejected by teacher" if status == R else None, ago(hago),
+             ps, ago(hago - 0.5) if ps == A else None, "reply" if ps == A else None,
+             ts, ago(hago - 1) if ts in (A, R) else None,
+             hs, ago(hago - 1.5) if hs == A else None,
+             ex, rt, late, late, "TKN-" + secrets.token_hex(6).upper(), secrets.token_urlsafe(16)))
+    db.execute("UPDATE settings SET value=? WHERE key='next_pass_id'", (str(len(rows) + 1),))
+
 
 
 def expand(entry):
@@ -534,7 +622,7 @@ def ok(**kw):
 
 @app.before_request
 def _sweep():
-    if request.path.startswith("/api/"):
+    if request.path.startswith("/api/") and request.path != "/api/__tunnel":
         sweep()
 
 
@@ -747,7 +835,7 @@ def pass_by_parent_token(token):
 
 @app.get("/p/<token>")
 def parent_page(token):
-    return send_from_directory(BASE_DIR, "parent.html")
+    return html_page("parent.html")
 
 
 @app.get("/api/p/<token>")
@@ -1328,19 +1416,114 @@ def notifications():
 
 
 # ═══════════════════════════════════════════════════════════════════
-# Static frontend
+# No-database mode (online prototype)
+# The browser sends its saved copy of the data with each request. We load it into a throwaway
+# in-memory database, run the normal endpoint, and send the updated copy back.
 # ═══════════════════════════════════════════════════════════════════
+TABLES = ("settings", "holidays", "staff", "students", "outpasses", "gate_scans", "notifications", "parent_contact_log")
+_tunnel_lock = threading.Lock()
+
+
+def fresh_memory_db():
+    conn = sqlite3.connect(":memory:", check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    conn.executescript(SCHEMA.replace("{SERIAL}", "INTEGER PRIMARY KEY AUTOINCREMENT"))
+    return conn
+
+
+def dump_state(conn):
+    conn.execute("DELETE FROM notifications WHERE id NOT IN (SELECT id FROM notifications ORDER BY id DESC LIMIT 150)")
+    data = {}
+    for t in TABLES:
+        cur = conn.execute(f"SELECT * FROM {t}")
+        data[t] = {"cols": [c[0] for c in cur.description], "rows": [list(r) for r in cur.fetchall()]}
+    return base64.b64encode(zlib.compress(json.dumps(data, separators=(",", ":")).encode(), 9)).decode()
+
+
+def load_state(conn, blob):
+    data = json.loads(zlib.decompress(base64.b64decode(blob)))
+    for t in TABLES:
+        if data.get(t, {}).get("rows"):
+            cols = data[t]["cols"]
+            conn.executemany(f"INSERT INTO {t} ({','.join(cols)}) VALUES ({','.join('?' * len(cols))})",
+                             data[t]["rows"])
+    conn.commit()
+
+
+@app.post("/api/__tunnel")
+def tunnel():
+    if not TUNNEL:
+        return err("Not found", 404)
+    env = request.get_json(force=True)
+    path = env.get("path") or "/"
+    if not path.startswith("/api/") or path.startswith("/api/__tunnel"):
+        return err("Bad path")
+    with _tunnel_lock:
+        conn = fresh_memory_db()
+        try:
+            try:
+                if not env.get("state"):
+                    raise ValueError("no saved data yet")
+                load_state(conn, env["state"])
+            except Exception as e:  # first visit, or a damaged copy: start from the demo data
+                app.logger.warning("tunnel %s %s: starting fresh demo data (%s)", env.get("method"), path, e)
+                conn.close()
+                conn = fresh_memory_db()
+                seed(conn)
+            _tunnel.conn = conn
+            # The inner request shares this request's app context (and its `g`), so make sure it
+            # can't pick up a connection to the server's own database file.
+            old = g.pop("db", None)
+            if old is not None:
+                old.close()
+            client = app.test_client()
+            if env.get("session"):
+                with client.session_transaction() as s:
+                    s.update(env["session"])
+            kw = {"method": env.get("method", "GET")}
+            if env.get("body") is not None:
+                kw["data"] = env["body"]
+                kw["content_type"] = env.get("contentType") or "application/json"
+            resp = client.open(path, **kw)
+            with client.session_transaction() as s:
+                new_session = dict(s)
+            state = dump_state(conn)
+        finally:
+            _tunnel.conn = None
+            g.pop("db", None)
+            conn.close()
+    return jsonify({"status": resp.status_code, "contentType": resp.content_type,
+                    "body": resp.get_data(as_text=True), "state": state, "session": new_session})
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Static frontend
+
+# ═══════════════════════════════════════════════════════════════════
+TUNNEL_TAGS = '<script>window.OUTPASS_TUNNEL=true</script><script src="/demo-tunnel.js"></script>'
+
+
+def html_page(name):
+    """Serve a page. In no-database mode, load the tunnel script before the page's own code."""
+    html = open(os.path.join(BASE_DIR, name), encoding="utf-8").read()
+    if TUNNEL:
+        html = html.replace("<head>", "<head>\n  " + TUNNEL_TAGS, 1)
+    return app.response_class(html, mimetype="text/html")
+
+
 @app.get("/")
 def index():
-    return send_from_directory(BASE_DIR, "index.html")
+    return html_page("index.html")
 
 
 @app.get("/<path:name>")
 def static_files(name):
     clean_name = name.removeprefix("api/index").strip("/")
     if not clean_name or clean_name == "index.html":
-        return send_from_directory(BASE_DIR, "index.html")
-    if clean_name in ("app.js", "style.css", "parent.html"):
+        return html_page("index.html")
+    if clean_name == "parent.html":
+        return html_page("parent.html")
+    if clean_name in ("app.js", "style.css", "demo-tunnel.js"):
         return send_from_directory(BASE_DIR, clean_name)
     return err("Not found", 404)
 

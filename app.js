@@ -213,7 +213,7 @@ function renderAuth(mode = 'login', who) {
           <details class="portal-demo">
             <summary>Demo accounts (password: pass123)</summary>
             <div class="portal-demo-grid">
-              <button type="button" class="btn btn-ghost btn-sm" onclick="quickLogin('rahul@cvv.edu.in','student')">Student</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="quickLogin('malapatisahasra162@gmail.com','student')">Student</button>
               <button type="button" class="btn btn-ghost btn-sm" onclick="quickLogin('teacher@cvv.edu.in','teacher')">Teacher</button>
               <button type="button" class="btn btn-ghost btn-sm" onclick="quickLogin('hod@cvv.edu.in','hod')">HOD</button>
               <button type="button" class="btn btn-ghost btn-sm" onclick="quickLogin('warden@cvv.edu.in','warden')">Warden</button>
@@ -221,6 +221,8 @@ function renderAuth(mode = 'login', who) {
               <button type="button" class="btn btn-ghost btn-sm" onclick="quickLogin('kitchen@cvv.edu.in','kitchen')">Kitchen</button>
               <button type="button" class="btn btn-ghost btn-sm" onclick="quickLogin('admin@cvv.edu.in','admin')">Admin</button>
             </div>
+            ${window.OUTPASS_TUNNEL ? `<p class="portal-demo-note">Online demo: data is saved in this browser only.
+              <a href="#" onclick="event.preventDefault();resetOutpassDemo()">Reset demo data</a></p>` : ''}
           </details>` : ''}
         </section>
       </main>

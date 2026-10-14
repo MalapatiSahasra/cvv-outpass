@@ -2,6 +2,8 @@
 import os, tempfile
 from datetime import datetime, timedelta
 
+os.environ["OUTPASS_SAMPLE_DATA"] = "0"
+os.environ["OUTPASS_TUNNEL"] = "0"
 os.environ["OUTPASS_DB"] = os.path.join(tempfile.mkdtemp(), "test.db")
 import app as A
 
